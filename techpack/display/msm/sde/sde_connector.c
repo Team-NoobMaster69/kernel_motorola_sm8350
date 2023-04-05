@@ -22,6 +22,8 @@
 #include "sde_vm.h"
 #include <drm/drm_probe_helper.h>
 
+#include "bl_lut.h"
+
 #define BL_NODE_NAME_SIZE 32
 #define HDR10_PLUS_VSIF_TYPE_CODE      0x81
 #define MAX_BRIGHTNESS_LEVEL 255
@@ -183,7 +185,9 @@ done:
 
 static int sde_backlight_device_get_brightness(struct backlight_device *bd)
 {
-	return 0;
+	struct sde_connector *c_conn = bl_get_data(bd);
+	struct dsi_display *display = (struct dsi_display *) c_conn->display;
+	return display->panel->bl_config.real_bl_level;
 }
 
 static const struct backlight_ops sde_backlight_device_ops = {
