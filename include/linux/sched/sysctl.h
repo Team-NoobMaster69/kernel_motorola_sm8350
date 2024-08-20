@@ -65,6 +65,20 @@ extern unsigned int sysctl_sched_sync_hint_enable;
 extern unsigned int sysctl_walt_cpu_high_irqload;
 extern unsigned int sysctl_sched_asym_cap_sibling_freq_match_en;
 
+#ifdef CONFIG_PELT_COMPATIBILITY_LAYER
+static unsigned int sysctl_sched_boost;
+static unsigned int sysctl_sched_prefer_spread;
+static unsigned int sysctl_sched_busy_hyst_enable_cpus;
+static unsigned int sysctl_sched_busy_hyst;
+static unsigned int sysctl_sched_group_upmigrate_pct;
+static unsigned int sysctl_sched_group_downmigrate_pct;
+static unsigned int sysctl_sched_ravg_window_nr_ticks;
+static unsigned int sysctl_sched_capacity_margin_up;
+static unsigned int sysctl_sched_capacity_margin_down;
+static unsigned int sysctl_sched_min_task_util_for_colocation;
+static unsigned int sysctl_sched_min_task_util_for_boost;
+#endif /* CONFIG_PELT_COMPATIBILITY_LAYER */
+
 extern int
 walt_proc_group_thresholds_handler(struct ctl_table *table, int write,
 			void __user *buffer, size_t *lenp,
