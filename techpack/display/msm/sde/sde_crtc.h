@@ -278,6 +278,7 @@ struct sde_crtc_misr_info {
  * @misr_frame_count  : misr frame count provided by client
  * @misr_data     : store misr data before turning off the clocks.
  * @idle_notify_work: delayed worker to notify idle timeout to user space
+ * @early_wakeup_work: work to trigger early wakeup
  * @power_event   : registered power event handle
  * @cur_perf      : current performance committed to clock/bandwidth driver
  * @plane_mask_old: keeps track of the planes used in the previous commit
@@ -361,6 +362,7 @@ struct sde_crtc {
 	bool misr_reconfigure;
 	u32 misr_frame_count;
 	struct kthread_delayed_work idle_notify_work;
+	struct kthread_work early_wakeup_work;
 
 	struct sde_power_event *power_event;
 
@@ -463,7 +465,6 @@ struct sde_crtc_state {
 	struct sde_hw_scaler3_lut_cfg scl3_lut_cfg;
 
 	struct sde_core_perf_params new_perf;
-	u8 fod_dim_alpha;
 };
 
 enum sde_crtc_irq_state {
@@ -972,7 +973,5 @@ void _sde_crtc_clear_dim_layers_v1(struct drm_crtc_state *state);
  * @crtc: Pointer to DRM crtc object
  */
 void sde_crtc_cancel_delayed_work(struct drm_crtc *crtc);
-
-bool sde_crtc_is_fod_enabled(struct drm_crtc_state *state);
 
 #endif /* _SDE_CRTC_H_ */

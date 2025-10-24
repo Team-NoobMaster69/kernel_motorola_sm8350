@@ -313,6 +313,8 @@ struct dsi_display {
 	struct dsi_panel_cmd_set cmd_set;
 
 	bool enabled;
+
+	bool was_active;
 };
 
 int dsi_display_dev_probe(struct platform_device *pdev);
@@ -839,8 +841,6 @@ int dsi_display_cont_splash_res_disable(void *display);
  */
 int dsi_display_get_panel_vfp(void *display,
 	int h_active, int v_active);
-
-struct dsi_display *get_main_display(void);
 
 /**
  * dsi_display_dump_clks_state() - dump clocks state to console

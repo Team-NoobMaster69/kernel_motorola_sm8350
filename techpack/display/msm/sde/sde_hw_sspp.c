@@ -229,11 +229,7 @@ static void sde_hw_sspp_update_multirect(struct sde_hw_pipe *ctx,
 }
 
 static void _sspp_setup_opmode(struct sde_hw_pipe *ctx,
-#ifdef CONFIG_GTP_FOD
-		bool csc_en, bool yuv_en)
-#else
 		u32 mask, u8 en)
-#endif
 {
 	u32 idx;
 	u32 opmode;
@@ -244,29 +240,17 @@ static void _sspp_setup_opmode(struct sde_hw_pipe *ctx,
 		return;
 
 	opmode = SDE_REG_READ(&ctx->hw, SSPP_VIG_OP_MODE + idx);
-#ifdef CONFIG_GTP_FOD
-	opmode &= ~(VIG_OP_CSC_EN | VIG_OP_CSC_SRC_DATAFMT);
-	if (csc_en)
-		opmode |= VIG_OP_CSC_EN;
 
-	if (yuv_en)
-		opmode |= VIG_OP_CSC_SRC_DATAFMT;
-#else
 	if (en)
 		opmode |= mask;
 	else
 		opmode &= ~mask;
-#endif
 
 	SDE_REG_WRITE(&ctx->hw, SSPP_VIG_OP_MODE + idx, opmode);
 }
 
 static void _sspp_setup_csc10_opmode(struct sde_hw_pipe *ctx,
-#ifdef CONFIG_GTP_FOD
-		bool csc_en, bool yuv_en)
-#else
 		u32 mask, u8 en)
-#endif
 {
 	u32 idx;
 	u32 opmode;
@@ -275,19 +259,10 @@ static void _sspp_setup_csc10_opmode(struct sde_hw_pipe *ctx,
 		return;
 
 	opmode = SDE_REG_READ(&ctx->hw, SSPP_VIG_CSC_10_OP_MODE + idx);
-#ifdef CONFIG_GTP_FOD
-	opmode &= ~(VIG_CSC_10_EN | VIG_CSC_10_SRC_DATAFMT);
-	if (csc_en)
-		opmode |= VIG_CSC_10_EN;
-
-	if (yuv_en)
-		opmode |= VIG_CSC_10_SRC_DATAFMT;
-#else
 	if (en)
 		opmode |= mask;
 	else
 		opmode &= ~mask;
-#endif
 
 	SDE_REG_WRITE(&ctx->hw, SSPP_VIG_CSC_10_OP_MODE + idx, opmode);
 }
@@ -323,12 +298,7 @@ static void sde_hw_sspp_set_src_split_order(struct sde_hw_pipe *ctx,
 static void sde_hw_sspp_setup_format(struct sde_hw_pipe *ctx,
 		const struct sde_format *fmt,
 		bool const_alpha_en, u32 flags,
-#ifdef CONFIG_GTP_FOD
-		enum sde_sspp_multirect_index rect_mode,
-		bool force_csc)
-#else
 		enum sde_sspp_multirect_index rect_mode)
-#endif
 {
 	struct sde_hw_blk_reg_map *c;
 	u32 chroma_samp, unpack, src_format;
@@ -337,9 +307,6 @@ static void sde_hw_sspp_setup_format(struct sde_hw_pipe *ctx,
 	u32 op_mode_off, unpack_pat_off, format_off;
 	u32 idx;
 	bool const_color_en = true;
-#ifdef CONFIG_GTP_FOD
-	bool csc_en = force_csc || SDE_FORMAT_IS_YUV(fmt);
-#endif
 
 	if (_sspp_subblk_offset(ctx, SDE_SSPP_SRC, &idx) || !fmt)
 		return;
@@ -435,20 +402,12 @@ static void sde_hw_sspp_setup_format(struct sde_hw_pipe *ctx,
 
 	/* update scaler opmode, if appropriate */
 	if (test_bit(SDE_SSPP_CSC, &ctx->cap->features))
-#ifdef CONFIG_GTP_FOD
-		_sspp_setup_opmode(ctx, csc_en, SDE_FORMAT_IS_YUV(fmt));
-#else
 		_sspp_setup_opmode(ctx, VIG_OP_CSC_EN | VIG_OP_CSC_SRC_DATAFMT,
 			SDE_FORMAT_IS_YUV(fmt));
-#endif
 	else if (test_bit(SDE_SSPP_CSC_10BIT, &ctx->cap->features))
-#ifdef CONFIG_GTP_FOD
-		_sspp_setup_csc10_opmode(ctx, csc_en, SDE_FORMAT_IS_YUV(fmt));
-#else
 		_sspp_setup_csc10_opmode(ctx,
 			VIG_CSC_10_EN | VIG_CSC_10_SRC_DATAFMT,
 			SDE_FORMAT_IS_YUV(fmt));
-#endif
 
 	SDE_REG_WRITE(c, format_off + idx, src_format);
 	SDE_REG_WRITE(c, unpack_pat_off + idx, unpack);

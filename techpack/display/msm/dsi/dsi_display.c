@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
- * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/list.h>
@@ -37,8 +37,6 @@
 
 #define SEC_PANEL_NAME_MAX_LEN  256
 #define MAX_ESD_RECOVERY_RETRY 5
-
-struct dsi_display *primary_display;
 
 u8 dbgfs_tx_cmd_buf[SZ_4K];
 static char dsi_display_primary[MAX_CMDLINE_PARAM_LEN];
@@ -235,7 +233,7 @@ int dsi_display_set_backlight(struct drm_connector *connector,
 	}
 
 	if (!(panel->bl_config.bl_level && bl_lvl))
-		DSI_DEBUG("bl_level changed from %u to %u\n",
+		DSI_INFO("bl_level changed from %u to %u\n",
 		       (u32)(panel->bl_config.bl_level), (u32)bl_lvl);
 
 	panel->bl_config.bl_level = bl_lvl;
@@ -1124,7 +1122,7 @@ static int dsi_display_dispUtil_get_datatype (char dsi_cmd, u8 cmd_type,
 	return rc;
 }
 
-static int __maybe_unused dsi_display_dispUtil_prepare(const char *cmd_buf, u32 cmd_buf_len,
+static int dsi_display_dispUtil_prepare(const char *cmd_buf, u32 cmd_buf_len,
 	struct dsi_cmd_desc *cmd, u8 *payload, u32 payload_len_max,
 	struct motUtil *motUtil_data)
 {
@@ -2489,7 +2487,7 @@ static void adjust_timing_by_ctrl_count(const struct dsi_display *display,
 		mode->timing.h_skew /= sublinks_count;
 		mode->pixel_clk_khz /= sublinks_count;
 	} else {
-		if ((mode->priv_info) && (mode->priv_info->dsc_enabled))
+		if (mode->priv_info->dsc_enabled)
 			mode->priv_info->dsc.config.pic_width =
 				mode->timing.h_active;
 		mode->timing.h_active /= display->ctrl_count;
@@ -6735,10 +6733,6 @@ int dsi_display_dev_remove(struct platform_device *pdev)
 	}
 
 	display = platform_get_drvdata(pdev);
-	if (!display || !display->panel_node) {
-		DSI_ERR("invalid display\n");
-		return -EINVAL;
-	}
 
 	/* decrement ref count */
 	of_node_put(display->panel_node);
@@ -6978,9 +6972,6 @@ static int dsi_display_ext_get_info(struct drm_connector *connector,
 		return -EINVAL;
 	}
 
-	if (display->panel->num_timing_nodes)
-		return dsi_display_get_info(connector, info, disp);
-
 	mutex_lock(&display->display_lock);
 
 	memset(info, 0, sizeof(struct msm_display_info));
@@ -7011,26 +7002,22 @@ static int dsi_display_ext_get_mode_info(struct drm_connector *connector,
 	void *display, const struct msm_resource_caps_info *avail_res)
 {
 	struct msm_display_topology *topology;
-	struct dsi_display *ext_display = (struct dsi_display *)display;
 
 	if (!drm_mode || !mode_info ||
 			!avail_res || !avail_res->max_mixer_width)
 		return -EINVAL;
 
-	if (ext_display->panel->num_timing_nodes)
-		return dsi_conn_get_mode_info(connector, drm_mode,
-			mode_info, display, avail_res);
-
 	memset(mode_info, 0, sizeof(*mode_info));
 	mode_info->frame_rate = drm_mode->vrefresh;
 	mode_info->vtotal = drm_mode->vtotal;
-	mode_info->comp_info.comp_type = MSM_DISPLAY_COMPRESSION_NONE;
 
 	topology = &mode_info->topology;
-	topology->num_lm = ext_display->ctrl_count;
-
+	topology->num_lm = (avail_res->max_mixer_width
+			<= drm_mode->hdisplay) ? 2 : 1;
 	topology->num_enc = 0;
 	topology->num_intf = topology->num_lm;
+
+	mode_info->comp_info.comp_type = MSM_DISPLAY_COMPRESSION_NONE;
 
 	return 0;
 }
@@ -7793,7 +7780,6 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
-	primary_display = display;
 
 error:
 	if (rc)
@@ -8148,7 +8134,7 @@ int dsi_display_set_mode(struct dsi_display *display,
 		goto error;
 	}
 
-	DSI_DEBUG("mdp_transfer_time=%d, hactive=%d, vactive=%d, fps=%d\n",
+	DSI_INFO("mdp_transfer_time=%d, hactive=%d, vactive=%d, fps=%d\n",
 			adj_mode.priv_info->mdp_transfer_time_us,
 			timing.h_active, timing.v_active, timing.refresh_rate);
 	SDE_EVT32(adj_mode.priv_info->mdp_transfer_time_us,
@@ -8548,7 +8534,7 @@ int dsi_display_prepare(struct dsi_display *display)
 		return -EINVAL;
 	}
 
-	DSI_DEBUG("panel_name=%s ctrl-index=%d\n",
+	DSI_INFO("panel_name=%s ctrl-index=%d\n",
 		display->panel->name, ctrl->ctrl->cell_index);
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_ENTRY);
@@ -9266,6 +9252,8 @@ int dsi_display_post_enable(struct dsi_display *display)
 {
 	int rc = 0;
 
+	DSI_DEBUG("%s+\n", __func__);
+
 	if (!display) {
 		DSI_ERR("Invalid params\n");
 		return -EINVAL;
@@ -9294,7 +9282,10 @@ int dsi_display_post_enable(struct dsi_display *display)
 		dsi_display_clk_ctrl(display->dsi_clk_handle,
 			DSI_ALL_CLKS, DSI_CLK_OFF);
 
-	dsi_panel_set_custom_param(display->panel);
+	if (display->was_active) {
+		dsi_panel_set_custom_param(display->panel);
+		display->was_active = false;
+	}
 
 	mutex_unlock(&display->display_lock);
 	return rc;
@@ -9409,7 +9400,7 @@ int dsi_display_disable(struct dsi_display *display)
 		return -EINVAL;
 	}
 
-	DSI_DEBUG("%s(%s)+\n", __func__, display->drm_conn->name);
+	DSI_INFO("%s(%s)+\n", __func__, display->drm_conn->name);
 	SDE_EVT32(SDE_EVTLOG_FUNC_ENTRY);
 	mutex_lock(&display->display_lock);
 
@@ -9471,6 +9462,7 @@ int dsi_display_disable(struct dsi_display *display)
 		display->panel->panel_initialized = false;
 		display->panel->power_mode = SDE_MODE_DPMS_OFF;
 	}
+	display->was_active = true;
 	mutex_unlock(&display->display_lock);
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
@@ -9545,7 +9537,7 @@ int dsi_display_unprepare(struct dsi_display *display)
 	mutex_lock(&display->display_lock);
 
 	//Check is Mot early power is on going
-	pr_debug("display %p, name %s is_dsi_mot_primary(%d)\n", display, display->name, display->is_dsi_mot_primary);
+	pr_info("display %p, name %s is_dsi_mot_primary(%d)\n", display, display->name, display->is_dsi_mot_primary);
 	if ( display->is_dsi_mot_early_power_enabled && !display->is_dsi_display_prepared) {
 		mutex_unlock(&display->display_lock);
 		pr_info("panel already unprepared\n");
@@ -9637,10 +9629,6 @@ int dsi_display_unprepare(struct dsi_display *display)
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
-}
-
-struct dsi_display *get_main_display(void) {
-	return primary_display;
 }
 
 void __init dsi_display_register(void)

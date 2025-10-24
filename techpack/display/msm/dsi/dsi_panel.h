@@ -174,7 +174,7 @@ struct dsi_backlight_config {
 	struct led_trigger *wled;
 	struct backlight_device *raw_bd;
 	struct backlight_device *i2c_bd;
-
+	
 	/* DCS params */
 	bool lp_mode;
 };
@@ -309,12 +309,6 @@ enum touch_state {
 	TOUCH_LOW_POWER_STATE,
 };
 
-#define BRIGHTNESS_ALPHA_PAIR_LEN 2
-struct brightness_alpha_pair {
-	u16 brightness;
-	u8 alpha;
-};
-
 struct dsi_panel {
 	const char *name;
 	const char *type;
@@ -349,6 +343,7 @@ struct dsi_panel {
 	struct drm_panel_esd_config esd_config;
 
 	struct dsi_panel_lhbm_config lhbm_config;
+	bool fod_hbm_enabled;
 
 	struct dsi_parser_utils utils;
 
@@ -407,17 +402,12 @@ struct dsi_panel {
 	bool is_panel_dead;
 	int paramVersion;
 	int paramNum;
+	int dc_state;
+	struct msm_param_info curDCModeParaInfo;
 
 	bool hbm_state;
 	bool acl_state;
 	bool cabc_state;
-	bool dc_state;
-
-	struct brightness_alpha_pair *fod_dim_lut;
-	unsigned int fod_dim_lut_len;
-	u8 fod_dim_alpha;
-	bool fod_hbm_enabled;
-	bool fod_ui;
 };
 
 bool dsi_display_all_displays_dead(void);
@@ -570,10 +560,5 @@ int dsi_panel_get_elvss_data(struct dsi_panel *panel);
 int dsi_panel_get_elvss_data_1(struct dsi_panel *panel);
 int dsi_panel_set_elvss_dim_off(struct dsi_panel *panel, u8 val);
 int dsi_panel_parse_elvss_config(struct dsi_panel *panel, u8 elv_vl);
-
-int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status);
-bool dsi_panel_get_fod_ui(struct dsi_panel *panel);
-void dsi_panel_set_fod_ui(struct dsi_panel *panel, bool status);
-u8 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
 
 #endif /* _DSI_PANEL_H_ */
