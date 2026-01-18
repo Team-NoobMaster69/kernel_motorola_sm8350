@@ -54,6 +54,10 @@ jobs:
       run: |
         ${TC_DIR}/bin/clang --version
 
+    - name: Setup KernelSU
+      run: |
+        curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s main
+
     - name: Export toolchain PATH
       run: |
         echo "PATH=$PWD/${TC_DIR}/bin:$PATH" >> $GITHUB_ENV
