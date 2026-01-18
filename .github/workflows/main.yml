@@ -1,0 +1,106 @@
+name: Build HuP Kernel
+
+on:
+  push:
+    branches:
+      - hup-fck
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      ARCH: arm64
+      CONFIG_FILE: vendor/lahaina-qgki_defconfig
+      KBUILD_BUILD_HOST: Pão
+      KBUILD_BUILD_USER: HotaruOs
+      TC_DIR: tc
+      CCACHE_DIR: ~/.ccache
+      USE_CCACHE: 1
+
+    steps:
+    - name: Checkout kernel source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          bc bison build-essential ccache curl flex git \
+          libssl-dev libncurses-dev \
+          python3 unzip zip
+
+    - name: Setup ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-${{ github.sha }}
+        restore-keys: |
+          ccache-
+
+    - name: Clone AOSP Clang r18
+      run: |
+        if [ ! -d "${TC_DIR}" ]; then
+          git clone --depth=1 -b 18 \
+            https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone \
+            ${TC_DIR}
+        fi
+
+    - name: Show Clang version
+      run: |
+        ${TC_DIR}/bin/clang --version
+
+    - name: Export toolchain PATH
+      run: |
+        echo "PATH=$PWD/${TC_DIR}/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Generate defconfig
+      run: |
+        make -s \
+          ARCH=${ARCH} \
+          O=out \
+          CC=clang \
+          HOSTCC=clang \
+          ${CONFIG_FILE} \
+          LLVM=1 \
+          LLVM_IAS=1 \
+          -j$(nproc)
+
+    - name: Compile kernel
+      run: |
+        make -j$(nproc) \
+          O=out \
+          ARCH=${ARCH} \
+          CC="ccache clang" \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          LLVM=1 \
+          LLVM_IAS=1
+
+    - name: Package AnyKernel
+      run: |
+        KERNEL_NAME="HuP-Fck死"
+        ZIP_NAME="${KERNEL_NAME}-$(date +"%d%m%Y-%H%M").zip"
+
+        git clone -q https://github.com/HotaruOs/AnyKernel3 -b pão anykernel
+
+        cp out/arch/arm64/boot/Image anykernel/
+        cp out/arch/arm64/boot/dts/vendor/qcom/*.img anykernel/
+        mkdir -p anykernel/dtb
+        cp out/arch/arm64/boot/dts/vendor/qcom/lahaina*dtb anykernel/dtb/
+
+        cd anykernel
+        zip -r AnyKernel.zip *
+        mv AnyKernel.zip ${ZIP_NAME}
+        mv ${ZIP_NAME} ../
+
+    - name: Upload kernel zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: HuP-Kernel
+        path: |
+          *.zip
