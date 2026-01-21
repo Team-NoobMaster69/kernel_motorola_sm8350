@@ -6,7 +6,7 @@ objdir="${kernel_dir}/out"
 anykernel=$HOME/anykernel
 builddir="${kernel_dir}/build"
 ZIMAGE=$kernel_dir/out/arch/arm64/boot/Image
-kernel_name="HuP-Fck死"
+kernel_name="HuP-Fck"
 zip_name="$kernel_name-$(date +"%d%m%Y-%H%M").zip"
 TC_DIR="${PWD}/tc"
 export CONFIG_FILE="vendor/lahaina-qgki_defconfig"
@@ -64,8 +64,7 @@ completion() {
 
         cp -f ${COMPILED_IMAGE} $anykernel
         cp -f "${DTB_DIR}"/*.img $anykernel
-        mkdir -p $anykernel/dtb
-        cp -f "${DTB_DIR}"/lahaina*dtb $anykernel/dtb
+        cat "${DTB_DIR}"/lahaina-moto-base-v2.1.dtb "${DTB_DIR}"/lahaina-moto-base.dtb > $anykernel/dtb || abort "Failed to concatenate lahaina*.dtb to AnyKernel3 directory!"
         cd $anykernel
         find . -name "*.zip" -type f
         find . -name "*.zip" -type f -delete
