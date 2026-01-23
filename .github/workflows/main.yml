@@ -88,7 +88,7 @@ jobs:
 
     - name: Package AnyKernel
       run: |
-        KERNEL_NAME="HuP-Fck死"
+        KERNEL_NAME="HuP-Fck"
         ZIP_NAME="${KERNEL_NAME}-$(date +"%d%m%Y-%H%M").zip"
 
         git clone -q https://github.com/HotaruOs/AnyKernel3 -b pão anykernel
@@ -168,4 +168,4 @@ jobs:
          🛠 *Clang:* AOSP r18
          
          📝 *Changelog*
-            ${{ env.CHANGELOG }}"
+         ${{ env.CHANGELOG }}"
