@@ -64,7 +64,7 @@ completion() {
 
         cp -f ${COMPILED_IMAGE} $anykernel
         cp -f "${DTB_DIR}"/*.img $anykernel
-        cat "${DTB_DIR}"/lahaina-moto-base-v2.1.dtb "${DTB_DIR}"/lahaina-moto-base.dtb > $anykernel || abort "Failed to concatenate lahaina*.dtb to AnyKernel3 directory!"
+        cat "${DTB_DIR}"/lahaina-moto-base-v2.1.dtb "${DTB_DIR}"/lahaina-moto-base.dtb > $anykernel/dtb || abort "Failed to concatenate lahaina*.dtb to AnyKernel3 directory!"
         cd $anykernel
         find . -name "*.zip" -type f
         find . -name "*.zip" -type f -delete
