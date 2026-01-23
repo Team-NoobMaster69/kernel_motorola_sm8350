@@ -95,7 +95,7 @@ jobs:
 
         cp out/arch/arm64/boot/Image anykernel/
         cp out/arch/arm64/boot/dts/vendor/qcom/*.img anykernel/
-        cat out/arch/arm64/boot/dts/vendor/qcom/lahaina-moto-base-v2.1.dtb out/arch/arm64/boot/dts/vendor/qcom/lahaina-moto-base.dtb > anykernel/ || abort "Failed to concatenate lahaina*.dtb to AnyKernel3 directory!"
+        cat out/arch/arm64/boot/dts/vendor/qcom/lahaina-moto-base-v2.1.dtb out/arch/arm64/boot/dts/vendor/qcom/lahaina-moto-base.dtb > anykernel/dtb || abort "Failed to concatenate lahaina*.dtb to AnyKernel3 directory!"
 
         cd anykernel
         zip -r AnyKernel.zip *
